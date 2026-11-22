@@ -8,7 +8,7 @@
   'use strict';
 
   // >>> Paste your Apps Script Web App URL (ends with /exec)
-  var API_URL = 'https://script.google.com/macros/s/PASTE_DEPLOYMENT_ID_HERE/exec';
+  var API_URL = 'https://script.google.com/macros/s/AKfycbzii72bCTGyR_j_69eANKclU3wxHpGm-c6sb3RPDtZt4yni6RfsTh7lOLVUxfTlnLY8/exec?m=1';
 
   var TOKEN_KEY = 'gas_token', EXP_KEY = 'gas_token_exp';
 
