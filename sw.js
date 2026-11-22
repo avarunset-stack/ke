@@ -1,55 +1,17 @@
-/* Service worker: caches the app shell so it opens instantly and offline.
-   API calls go to script.google.com (cross-origin) and are never cached or intercepted.
-   Bump VERSION whenever you deploy changes so installed copies refresh. */
+/* Caches only the thin shell (icons, manifest, page). The app itself loads live from Apps Script.
+   Bump VERSION if you change the shell files. */
 const VERSION = 'v1';
-const CACHE = 'app-shell-' + VERSION;
-const SHELL = [
-  './',
-  './index.html',
-  './gas-shim.js',
-  './manifest.json',
-  './icons/icon-192.png',
-  './icons/icon-512.png',
-  './icons/maskable-512.png'
-  // add './Mobile.html', './app.css', etc. if you split them out
-];
+const CACHE = 'shell-' + VERSION;
+const SHELL = ['./', './index.html', './manifest.json', './icons/icon-192.png', './icons/icon-512.png', './icons/maskable-512.png'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
 });
-
 self.addEventListener('activate', (e) => {
-  e.waitUntil(
-    caches.keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
-      .then(() => self.clients.claim())
-  );
+  e.waitUntil(caches.keys().then((k) => Promise.all(k.filter((x) => x !== CACHE).map((x) => caches.delete(x)))).then(() => self.clients.claim()));
 });
-
 self.addEventListener('fetch', (e) => {
   const req = e.request;
-  if (req.method !== 'GET') return;
-  const url = new URL(req.url);
-  if (url.origin !== self.location.origin) return; // never touch Apps Script / Google calls
-
-  // Pages: network first (so updates arrive), fall back to cache offline.
-  if (req.mode === 'navigate') {
-    e.respondWith(
-      fetch(req)
-        .then((res) => { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(req, copy)); return res; })
-        .catch(() => caches.match(req).then((r) => r || caches.match('./index.html')))
-    );
-    return;
-  }
-
-  // Static assets: cache first, refresh in background.
-  e.respondWith(
-    caches.match(req).then((cached) => {
-      const fetching = fetch(req).then((res) => {
-        if (res.ok) { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(req, copy)); }
-        return res;
-      }).catch(() => cached);
-      return cached || fetching;
-    })
-  );
+  if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;
+  e.respondWith(fetch(req).catch(() => caches.match(req).then((r) => r || caches.match('./index.html'))));
 });
